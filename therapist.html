@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GPT-Like Therapist Training</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f2f2f2;
+      max-width: 750px;
+      margin: auto;
+      padding: 20px;
+    }
+    #chatBox {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 15px;
+      height: 400px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    input, button, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
+    }
+    button {
+      background: #4caf50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .user { color: blue; }
+    .bot { color: darkgreen; }
+    #result {
+      margin-top: 15px;
+      display: none;
+      background: #e0ffe0;
+      border: 1px solid green;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🧠 GPT-Like Therapist Training App (Offline)</h2>
+<div id="chatBox"></div>
+
+<input type="text" id="input" placeholder="Type your reply to the patient..." />
+<button onclick="send()">Send</button>
+
+<h3>Guess Diagnosis</h3>
+Depression:
+<select id="depression">
+  <option value="none">None</option>
+  <option value="mild">Mild</option>
+  <option value="moderate">Moderate</option>
+  <option value="severe">Severe</option>
+</select>
+Anxiety:
+<select id="anxiety">
+  <option value="none">None</option>
+  <option value="mild">Mild</option>
+  <option value="moderate">Moderate</option>
+  <option value="severe">Severe</option>
+</select>
+Trauma:
+<select id="trauma">
+  <option value="none">None</option>
+  <option value="mild">Mild</option>
+  <option value="moderate">Moderate</option>
+  <option value="severe">Severe</option>
+</select>
+<button onclick="diagnose()">Check Diagnosis</button>
+
+<div id="result"></div>
+
+<script>
+const chatBox = document.getElementById("chatBox");
+const memory = new Set();
+
+const truth = {
+  depression: ["moderate", "severe", "mild"][Math.floor(Math.random() * 3)],
+  anxiety: ["none", "mild", "moderate", "severe"][Math.floor(Math.random() * 4)],
+  trauma: ["mild", "moderate", "severe"][Math.floor(Math.random() * 3)]
+};
+
+const hobbies = ["painting", "gardening", "coding", "writing stories", "woodworking", "drawing", "poetry"];
+const rules = [
+  { triggers: ["sleep", "tired", "rest"], response: "I can’t sleep well. My mind just won’t shut off." },
+  { triggers: ["friends", "social", "alone"], response: "I don’t talk to people anymore. I just feel disconnected." },
+  { triggers: ["fear", "panic", "afraid", "scared"], response: "I'm always on edge... like something bad will happen." },
+  { triggers: ["past", "trauma", "before"], response: "Sometimes I feel like I’m still stuck in the past." },
+  { triggers: ["motivation", "work", "energy"], response: "Even brushing my teeth feels impossible some days." },
+  { triggers: ["feel", "sad", "happy", "emotion"], response: "Most days I just feel... empty." },
+  { triggers: ["hope", "future", "goal", "plan"], response: "I don’t see a future for myself. Everything feels pointless." },
+  { triggers: ["death", "loss", "grief"], response: "I lost someone close to me, and it changed everything." },
+  { triggers: ["cry", "tear"], response: "*(cries softly for 4 seconds)* I just feel like I’m pretending to live." },
+  { triggers: ["hobby", "like", "activity"], response: `I used to enjoy ${randomHobby()}. Now it feels meaningless.` },
+  { triggers: ["sneeze", "cold"], response: "*(sneezes softly)* Sorry... it’s hard to talk sometimes." },
+  { triggers: ["numb", "blank", "empty"], response: "I feel numb more than sad. Like a ghost in my own life." }
+];
+
+function randomHobby() {
+  return hobbies[Math.floor(Math.random() * hobbies.length)];
+}
+
+function speak(role, text, cls) {
+  const line = document.createElement("p");
+  line.innerHTML = `<b class="${cls}">${role}:</b> ${text}`;
+  chatBox.appendChild(line);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function getSmartReply(input) {
+  input = input.toLowerCase();
+  for (let rule of rules) {
+    if (rule.triggers.some(t => input.includes(t)) && !memory.has(rule.response)) {
+      memory.add(rule.response);
+      return rule.response;
+    }
+  }
+
+  const unused = rules.filter(r => !memory.has(r.response));
+  if (unused.length > 0) {
+    const random = unused[Math.floor(Math.random() * unused.length)];
+    memory.add(random.response);
+    return random.response;
+  }
+
+  return "(Patient is silent now. Time for your diagnosis.)";
+}
+
+let turns = 0;
+function send() {
+  const input = document.getElementById("input").value.trim();
+  if (!input) return;
+  speak("You", input, "user");
+  document.getElementById("input").value = "";
+  turns++;
+
+  setTimeout(() => {
+    const reply = turns <= 10 ? getSmartReply(input) : "(Patient is silent now. Time for your diagnosis.)";
+    speak("Patient", reply, "bot");
+  }, 700);
+}
+
+function diagnose() {
+  const guess = {
+    depression: document.getElementById("depression").value,
+    anxiety: document.getElementById("anxiety").value,
+    trauma: document.getElementById("trauma").value
+  };
+
+  const levels = ["none", "mild", "moderate", "severe"];
+  let score = 0;
+  for (let key of ["depression", "anxiety", "trauma"]) {
+    const g = levels.indexOf(guess[key]);
+    const t = levels.indexOf(truth[key]);
+    if (g === t) score += 1;
+    else if (Math.abs(g - t) === 1) score += 0.5;
+  }
+
+  const accuracy = ((score / 3) * 100).toFixed(1);
+  const result = document.getElementById("result");
+  result.style.display = "block";
+  result.innerHTML = `
+    <h4>🎯 Diagnosis Accuracy: ${accuracy}%</h4>
+    <p><b>Correct Profile:</b><br>
+    Depression: ${truth.depression}<br>
+    Anxiety: ${truth.anxiety}<br>
+    Trauma: ${truth.trauma}</p>
+  `;
+}
+
+speak("Patient", "Hello doctor... I’m not really sure where to begin.", "bot");
+</script>
+
+</body>
+</html>
